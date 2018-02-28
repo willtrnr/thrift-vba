@@ -14,25 +14,25 @@ Implements TProtocol
 
 Private Const CP_UTF8 As Long = 65001
 
-Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByRef Destination As Any, ByRef Source As Any, ByVal Length As Long)
+Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As Long)
 
 Private Declare PtrSafe Function WideCharToMultiByte Lib "kernel32" ( _
   ByVal CodePage As Long, _
   ByVal dwFlags As Long, _
-  ByVal lpWideCharStr As Long, _
+  ByVal lpWideCharStr As LongPtr, _
   ByVal cchWideChar As Long, _
-  ByVal lpMultiByteStr As Long, _
+  ByVal lpMultiByteStr As LongPtr, _
   ByVal cbMultiByte As Long, _
-  ByVal lpDefaultChar As Long, _
-  ByVal lpUsedDefaultChar As Long _
+  ByVal lpDefaultChar As LongPtr, _
+  ByVal lpUsedDefaultChar As LongPtr _
 ) As Long
 
 Private Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" ( _
   ByVal CodePage As Long, _
   ByVal dwFlags As Long, _
-  ByVal lpMultiByteStr As Long, _
+  ByVal lpMultiByteStr As LongPtr, _
   ByVal cbMultiByte As Long, _
-  ByVal lpWideCharStr As Long, _
+  ByVal lpWideCharStr As LongPtr, _
   ByVal cchWideChar As Long _
 ) As Long
 
@@ -182,18 +182,26 @@ End Sub
 Public Sub WriteDouble(ByVal Dub As Double)
   Debug.Assert m_init
   Dim Buf(7) As Byte
-  CopyMemory Buf(0), Dub, 8
+  CopyMemory VarPtr(Buf(0)), VarPtr(Dub), 8
   m_trans.TWrite Buf, 0, 8
 End Sub
 
 Public Sub WriteString(ByVal Str As String)
   Debug.Assert m_init
-  Dim Buf() As Byte
-  Dim Size As Long
-  Size = WideCharToMultiByte(CP_UTF8, 0&, ByVal StrPtr(Str), -1&, vbNull, 0&, 0&, 0&)
-  ReDim Buf(Size - 2)
-  Size = WideCharToMultiByte(CP_UTF8, 0&, ByVal StrPtr(Str), -1&, ByVal VarPtr(Buf(0)), Size - 1, 0&, 0&)
-  WriteBinary Buf
+  If Str = vbNullString Then
+      WriteI32 0
+  Else
+    Dim Buf() As Byte
+    
+    Dim Size As Long
+    Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, 0&, 0&, 0&, 0&)
+    
+    ReDim Buf(Size - 1)
+    Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, VarPtr(Buf(0)), Size, 0&, 0&)
+    
+    WriteI32 Size - 1
+    m_trans.TWrite Buf, 0, Size - 1
+  End If
 End Sub
 
 Public Sub WriteBinary(ByRef Buf() As Byte)
@@ -358,30 +366,34 @@ Public Function ReadDouble() As Double
   Debug.Assert m_init
   Dim Buf(7) As Byte
   m_trans.ReadAll Buf, 0, 8
-  CopyMemory ReadI32, Buf(0), 8
+  CopyMemory VarPtr(ReadDouble), VarPtr(Buf(0)), 8
 End Function
 
 Private Function ReadStringBody(ByVal Size As Long) As String
   Debug.Assert m_init
+  If Size = 0 Then
+    ReadStringBody = vbNullString
+  Else
+    Dim Buf() As Byte
+    ReDim Buf(Size - 1)
+    m_trans.ReadAll Buf, 0, Size
+    
+    Dim StrSize As Long
+    StrSize = MultiByteToWideChar(CP_UTF8, 0&, VarPtr(Buf(0)), Size, 0&, 0&)
 
-  Dim Buf() As Byte
-  ReDim Buf(Size - 1)
-  m_trans.ReadAll Buf, 0, Size
-  
-  Dim StrSize As Long
-  StrSize = MultiByteToWideChar(CP_UTF8, 0&, ByVal VarPtr(Buf(0)), UBound(Buf) + 1, vbNull, 0&)
-  
-  Dim StrBuf() As Byte
-  ReDim StrBuf(StrSize * 2 - 1)
-  
-  MultiByteToWideChar CP_UTF8, 0&, ByVal VarPtr(Buf(0)), UBound(Buf) + 1, ByVal VarPtr(StrBuf(0)), Size
+    Dim StrBuf() As Byte
+    ReDim StrBuf(StrSize * 2 - 1)
+    MultiByteToWideChar CP_UTF8, 0&, VarPtr(Buf(0)), Size, VarPtr(StrBuf(0)), StrSize
 
-  ReadStringBody = StrBuf
+    ReadStringBody = StrBuf
+  End If
 End Function
 
 Public Function ReadString() As String
   Debug.Assert m_init
-  ReadString = ReadStringBody(ReadI32)
+  Dim Size As Long
+  Size = ReadI32
+  ReadString = ReadStringBody(Size)
 End Function
 
 Public Function ReadBinary() As Byte()

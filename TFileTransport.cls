@@ -12,7 +12,7 @@ Option Explicit
 
 Implements TTransport
 
-Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByRef Destination As Any, ByRef Source As Any, ByVal Length As Long)
+Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As Long)
 
 Private m_init As Boolean
 
@@ -72,7 +72,7 @@ Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As 
   
   Dim B As Variant
   B = m_stream.Read(Length)
-  CopyMemory Buf(Offset), B(0), UBound(B) + 1
+  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), UBound(B) + 1
   Read = UBound(B) + 1
 End Function
 
@@ -88,7 +88,7 @@ Public Function ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length 
   If UBound(B) + 1 <> Length Then
     Err.Raise 5, Description:="End of file reached"
   End If
-  CopyMemory Buf(Offset), B(), Length
+  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), Length
   ReadAll = Length
 End Function
 

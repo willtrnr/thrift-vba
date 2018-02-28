@@ -12,7 +12,7 @@ Option Explicit
 
 Implements TTransport
 
-Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByRef Destination As Any, ByRef Source As Any, ByVal Length As Long)
+Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As Long)
 
 Private m_init As Boolean
 
@@ -69,7 +69,7 @@ Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As 
 
   Dim Bytes() As Byte
   Bytes = m_inputStream.Read(Length)
-  CopyMemory Buf(Offset), Bytes(0), UBound(Bytes) + 1
+  CopyMemory VarPtr(Buf(Offset)), VarPtr(Bytes(0)), UBound(Bytes) + 1
   Read = UBound(Bytes) + 1
 End Function
 
@@ -87,7 +87,7 @@ Public Sub TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Lon
   
   Dim B() As Byte
   ReDim B(Length - 1)
-  CopyMemory B(0), Buf(Offset), Length
+  CopyMemory VarPtr(B(0)), VarPtr(Buf(Offset)), Length
   m_outputStream.Write B
 End Sub
 
