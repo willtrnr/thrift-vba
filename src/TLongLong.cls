@@ -110,6 +110,7 @@ Public Property Get AsLong() As Long
 End Property
 
 Public Property Get AsDouble() As Double
+  Debug.Assert m_init
   If (m_bytes(0) And &H80) = &H80 Then
     AsDouble = CDbl(Not m_bytes(0))
     AsDouble = AsDouble * &H100 + CDbl(Not m_bytes(1))
@@ -133,11 +134,13 @@ Public Property Get AsDouble() As Double
 End Property
 
 Public Property Get AsString() As String
+  Debug.Assert m_init
   ' TODO
   AsString = CStr(AsDouble)
 End Property
 
 Public Function Equals(ByVal Other As TLongLong) As Boolean
+  Debug.Assert m_init
   Dim OtherBytes() As Byte
   OtherBytes = Other.Bytes
   Equals = _
