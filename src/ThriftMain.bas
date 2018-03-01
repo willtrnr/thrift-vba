@@ -11,7 +11,7 @@ Public Sub Main()
   Dim Proto As TProtocol
   Set Proto = NewTMultiplexedProtocol(NewTBinaryProtocol(Trans), "test")
 
-  Debug.Print Add(Proto, 3, 8)
+  Debug.Print Add(Proto, 3, 5)
 End Sub
 
 Private Function NextSeqId() As Long

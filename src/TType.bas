@@ -9,6 +9,7 @@ Public Const TType_Byte As Byte = 3
 Public Const TType_Double As Byte = 4
 Public Const TType_I16 As Byte = 6
 Public Const TType_I32 As Byte = 8
+Public Const TType_I64 As Byte = 10
 Public Const TType_String As Byte = 11
 Public Const TType_Struct As Byte = 12
 Public Const TType_Map As Byte = 13

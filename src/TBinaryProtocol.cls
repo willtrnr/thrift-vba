@@ -185,6 +185,11 @@ Public Sub WriteI32(ByVal I32 As Long)
   m_trans.TWrite Buf, 0, 4
 End Sub
 
+Public Sub WriteI64(ByVal I64 As TLongLong)
+  Debug.Assert m_init
+  m_trans.TWrite I64.Bytes, 0, 8
+End Sub
+
 Public Sub WriteDouble(ByVal Dub As Double)
   Debug.Assert m_init
   Dim Buf(7) As Byte
@@ -357,7 +362,10 @@ Public Function ReadI16() As Integer
   Dim Buf(1) As Byte
   m_trans.ReadAll Buf, 0, 2
   
-  ReadI16 = CInt(Buf(0)) * &H100 + CLng(Buf(1))
+  ReadI16 = CLng(Buf(0) And &H7F) * &H100 + CLng(Buf(1))
+  If (Buf(0) And &H80) = &H80 Then
+    ReadI16 = ReadI16 Or &H8000
+  End If
 End Function
 
 Public Function ReadI32() As Long
@@ -368,8 +376,17 @@ Public Function ReadI32() As Long
   
   ReadI32 = CLng(Buf(0) And &H7F) * &H1000000 + CLng(Buf(1)) * &H10000 + CLng(Buf(2)) * &H100 + CLng(Buf(3))
   If (Buf(0) And &H80) = &H80 Then
-    ReadI32 = &H80000000 + ReadI32
+    ReadI32 = ReadI32 Or &H80000000
   End If
+End Function
+
+Public Function ReadI64() As TLongLong
+  Debug.Assert m_init
+
+  Dim Buf(7) As Byte
+  m_trans.ReadAll Buf, 0, 8
+
+  Set ReadI64 = NewTLongLong(Buf)
 End Function
 
 Public Function ReadDouble() As Double
@@ -522,6 +539,10 @@ Private Sub TProtocol_WriteI32(ByVal I32 As Long)
   WriteI32 I32
 End Sub
 
+Private Sub TProtocol_WriteI64(ByVal I64 As TLongLong)
+  WriteI64 I64
+End Sub
+
 Private Sub TProtocol_WriteDouble(ByVal Dub As Double)
   WriteDouble Dub
 End Sub
@@ -596,6 +617,10 @@ End Function
 
 Private Function TProtocol_ReadI32() As Long
   TProtocol_ReadI32 = ReadI32
+End Function
+
+Private Function TProtocol_ReadI64() As TLongLong
+  Set TProtocol_ReadI64 = ReadI64
 End Function
 
 Private Function TProtocol_ReadDouble() As Double

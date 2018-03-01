@@ -68,6 +68,9 @@ End Sub
 Public Sub WriteI32(ByVal I32 As Long)
 End Sub
 
+Public Sub WriteI64(ByVal I64 As TLongLong)
+End Sub
+
 Public Sub WriteDouble(ByVal Dub As Double)
 End Sub
 
@@ -125,6 +128,9 @@ Public Function ReadI16() As Integer
 End Function
 
 Public Function ReadI32() As Long
+End Function
+
+Public Function ReadI64() As TLongLong
 End Function
 
 Public Function ReadDouble() As Double

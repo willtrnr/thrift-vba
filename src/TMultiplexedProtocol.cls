@@ -130,6 +130,11 @@ Public Sub WriteI32(ByVal I32 As Long)
   m_proto.WriteI32 I32
 End Sub
 
+Public Sub WriteI64(ByVal I64 As TLongLong)
+  Debug.Assert m_init
+  m_proto.WriteI64 I64
+End Sub
+
 Public Sub WriteDouble(ByVal Dub As Double)
   Debug.Assert m_init
   m_proto.WriteDouble Dub
@@ -225,6 +230,11 @@ End Function
 Public Function ReadI32() As Long
   Debug.Assert m_init
   ReadI32 = m_proto.ReadI32
+End Function
+
+Public Function ReadI64() As TLongLong
+  Debug.Assert m_init
+  Set ReadI64 = m_proto.ReadI64
 End Function
 
 Public Function ReadDouble() As Double
@@ -324,6 +334,10 @@ Private Sub TProtocol_WriteI32(ByVal I32 As Long)
   WriteI32 I32
 End Sub
 
+Private Sub TProtocol_WriteI64(ByVal I64 As TLongLong)
+  WriteI64 I64
+End Sub
+
 Private Sub TProtocol_WriteDouble(ByVal Dub As Double)
   WriteDouble Dub
 End Sub
@@ -398,6 +412,10 @@ End Function
 
 Private Function TProtocol_ReadI32() As Long
   TProtocol_ReadI32 = ReadI32
+End Function
+
+Private Function TProtocol_ReadI64() As TLongLong
+  Set TProtocol_ReadI64 = ReadI64
 End Function
 
 Private Function TProtocol_ReadDouble() As Double
