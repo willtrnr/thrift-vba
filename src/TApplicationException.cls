@@ -10,6 +10,8 @@ Attribute VB_Exposed = False
 '@Folder("Thrift")
 Option Explicit
 
+Implements TSerializable
+
 Private m_init As Boolean
 
 Private m_message As String
@@ -28,7 +30,7 @@ Public Sub Init(Optional ByVal Message As String = vbNullString, Optional ByVal 
   m_message = Message
 End Sub
 
-Public Sub Read(ByVal Proto As TProtocol)
+Public Sub TRead(ByVal Proto As TProtocol)
   Debug.Assert Not m_init
   
   Dim TType As Byte
@@ -59,6 +61,30 @@ Public Sub Read(ByVal Proto As TProtocol)
   Init Message, TType
 End Sub
 
+Public Sub TWrite(ByVal Proto As TProtocol)
+  Debug.Assert m_init
+  
+  Dim Struct As TStruct
+  Set Struct = NewTStruct("TApplicationException")
+  Proto.WriteStructBegin Struct
+  
+  Dim Field As TField
+  If m_message <> vbNullString Then
+    Set Field = NewTField("message", TType_String, 1)
+    Proto.WriteFieldBegin Field
+    Proto.WriteString m_message
+    Proto.WriteFieldEnd
+  End If
+  
+  Set Field = NewTField("type", TType_I32, 2)
+  Proto.WriteFieldBegin Field
+  Proto.WriteI32 m_type
+  Proto.WriteFieldEnd
+  
+  Proto.WriteFieldStop
+  Proto.WriteStructEnd
+End Sub
+
 Public Property Get TType() As Byte
   Debug.Assert m_init
   TType = m_type
@@ -68,3 +94,13 @@ Public Property Get Message() As String
   Debug.Assert m_init
   Message = m_message
 End Property
+
+' Interface implementation
+
+Private Sub TSerializable_TRead(ByVal Proto As TProtocol)
+  TRead Proto
+End Sub
+
+Private Sub TSerializable_TWrite(ByVal Proto As TProtocol)
+  TWrite Proto
+End Sub

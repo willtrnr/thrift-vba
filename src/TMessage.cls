@@ -2,7 +2,7 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "TField"
+Attribute VB_Name = "TMessage"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
@@ -14,21 +14,21 @@ Private m_init As Boolean
 
 Private m_name As String
 Private m_type As Byte
-Private m_id As Integer
+Private m_seqId As Long
 
 Private Sub Class_Initialize()
   m_init = False
   m_name = vbNullString
   m_type = 0
-  m_id = 0
+  m_seqId = 0
 End Sub
 
-Public Sub Init(ByVal N As String, ByVal T As Byte, ByVal I As Integer)
+Public Sub Init(ByVal Name As String, ByVal TType As Byte, ByVal SeqId As Long)
   Debug.Assert Not m_init
   m_init = True
-  m_name = N
-  m_type = T
-  m_id = I
+  m_name = Name
+  m_type = TType
+  m_seqId = SeqId
 End Sub
 
 Public Property Get Name() As String
@@ -41,7 +41,7 @@ Public Property Get TType() As Byte
   TType = m_type
 End Property
 
-Public Property Get Id() As Integer
+Public Property Get SeqId() As Long
   Debug.Assert m_init
-  Id = m_id
+  SeqId = m_seqId
 End Property

@@ -6,10 +6,10 @@ Private SeqId As Long
 
 Public Sub Main()
   Dim Trans As TTransport
-  Set Trans = TTransportFactory.GetHttpClient("http://127.0.0.1:8888")
+  Set Trans = NewTHttpClient("http://127.0.0.1:8888")
   
   Dim Proto As TProtocol
-  Set Proto = TProtocolFactory.GetMultiplexedProtocol(TProtocolFactory.GetBinaryProtocol(Trans), "test")
+  Set Proto = NewTMultiplexedProtocol(NewTBinaryProtocol(Trans), "test")
 
   Debug.Print Add(Proto, 3, 8)
 End Sub
@@ -26,25 +26,23 @@ Private Sub Ping(ByVal Proto As TProtocol)
   Dim Struct As TStruct
   Dim Field As TField
   
-  Set Message = New TMessage
-  Message.Init "ping", TMessageType_Call, NextSeqId
+  Set Message = NewTMessage("ping", TMessageType_Call, NextSeqId)
   Proto.WriteMessageBegin Message
   
-  Set Struct = New TStruct
-  Struct.Init "ping_args"
+  Set Struct = NewTStruct("ping_args")
   Proto.WriteStructBegin Struct
   
   Proto.WriteFieldStop
   Proto.WriteStructEnd
   Proto.WriteMessageEnd
   
-  Proto.GetTransport.Flush
+  Proto.Transport.Flush
   
   Set Message = Proto.ReadMessageBegin
   If Message.TType = TMessageType_Exception Then
     Dim Ex As TApplicationException
     Set Ex = New TApplicationException
-    Ex.Read Proto
+    Ex.TRead Proto
     Err.Raise 5, Description:=Ex.Message
   End If
   
@@ -67,22 +65,18 @@ Private Function Add(ByVal Proto As TProtocol, ByVal Num1 As Long, ByVal Num2 As
   Dim Struct As TStruct
   Dim Field As TField
   
-  Set Message = New TMessage
-  Message.Init "add", TMessageType_Call, NextSeqId
+  Set Message = NewTMessage("add", TMessageType_Call, NextSeqId)
   Proto.WriteMessageBegin Message
   
-  Set Struct = New TStruct
-  Struct.Init "add_args"
+  Set Struct = NewTStruct("add_args")
   Proto.WriteStructBegin Struct
   
-  Set Field = New TField
-  Field.Init "num1", TType_I32, 1
+  Set Field = NewTField("num1", TType_I32, 1)
   Proto.WriteFieldBegin Field
   Proto.WriteI32 Num1
   Proto.WriteFieldEnd
   
-  Set Field = New TField
-  Field.Init "num2", TType_I32, 2
+  Set Field = NewTField("num2", TType_I32, 2)
   Proto.WriteFieldBegin Field
   Proto.WriteI32 Num2
   Proto.WriteFieldEnd
@@ -91,13 +85,13 @@ Private Function Add(ByVal Proto As TProtocol, ByVal Num1 As Long, ByVal Num2 As
   Proto.WriteStructEnd
   Proto.WriteMessageEnd
   
-  Proto.GetTransport.Flush
+  Proto.Transport.Flush
   
   Set Message = Proto.ReadMessageBegin
   If Message.TType = TMessageType_Exception Then
     Dim Ex As TApplicationException
     Set Ex = New TApplicationException
-    Ex.Read Proto
+    Ex.TRead Proto
     Err.Raise 5, Description:=Ex.Message
   End If
   

@@ -12,8 +12,8 @@ Option Explicit
 
 ' Transport
 
-Public Function GetTransport() As TTransport
-End Function
+Public Property Get Transport() As TTransport
+End Property
 
 ' Writing
 

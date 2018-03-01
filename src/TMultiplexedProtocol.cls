@@ -34,20 +34,17 @@ End Sub
 
 ' Transport
 
-Public Function GetTransport() As TTransport
+Public Property Get Transport() As TTransport
   Debug.Assert m_init
-  Set GetTransport = m_proto.GetTransport
-End Function
+  Set Transport = m_proto.Transport
+End Property
 
 ' Writing
 
 Public Sub WriteMessageBegin(ByVal Message As TMessage)
   Debug.Assert m_init
   If Message.TType = TMessageType_Call Or Message.TType = TMessageType_OneWay Then
-    Dim M As TMessage
-    Set M = New TMessage
-    M.Init m_serviceName & SEPARATOR & Message.Name, Message.TType, Message.SeqId
-    m_proto.WriteMessageBegin M
+    m_proto.WriteMessageBegin NewTMessage(m_serviceName & SEPARATOR & Message.Name, Message.TType, Message.SeqId)
   Else
     m_proto.WriteMessageBegin Message
   End If
@@ -255,9 +252,9 @@ End Sub
 
 ' Interface implementation
 
-Private Function TProtocol_GetTransport() As TTransport
-  Set TProtocol_GetTransport = GetTransport()
-End Function
+Private Property Get TProtocol_Transport() As TTransport
+  Set TProtocol_Transport = Transport
+End Property
 
 Private Sub TProtocol_WriteMessageBegin(ByVal Message As TMessage)
   WriteMessageBegin Message

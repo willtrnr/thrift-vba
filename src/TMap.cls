@@ -2,7 +2,7 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "TMessage"
+Attribute VB_Name = "TMap"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
@@ -12,36 +12,36 @@ Option Explicit
 
 Private m_init As Boolean
 
-Private m_name As String
-Private m_type As Byte
-Private m_seqId As Long
+Private m_keyType As Byte
+Private m_valueType As Byte
+Private m_size As Long
 
 Private Sub Class_Initialize()
   m_init = False
-  m_name = vbNullString
-  m_type = 0
-  m_seqId = 0
+  m_keyType = 0
+  m_valueType = 0
+  m_size = 0
 End Sub
 
-Public Sub Init(ByVal N As String, ByVal T As Byte, ByVal s As Long)
+Public Sub Init(ByVal KeyType As Byte, ByVal ValueType As Byte, ByVal Size As Long)
   Debug.Assert Not m_init
   m_init = True
-  m_name = N
-  m_type = T
-  m_seqId = s
+  m_keyType = KeyType
+  m_valueType = ValueType
+  m_size = Size
 End Sub
 
-Public Property Get Name() As String
+Public Property Get KeyType() As Byte
   Debug.Assert m_init
-  Name = m_name
+  KeyType = m_keyType
 End Property
 
-Public Property Get TType() As Byte
+Public Property Get ValueType() As Byte
   Debug.Assert m_init
-  TType = m_type
+  ValueType = m_valueType
 End Property
 
-Public Property Get SeqId() As Long
+Public Property Get Size() As Long
   Debug.Assert m_init
-  SeqId = m_seqId
+  Size = m_size
 End Property

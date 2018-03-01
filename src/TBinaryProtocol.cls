@@ -14,8 +14,6 @@ Implements TProtocol
 
 Private Const CP_UTF8 As Long = 65001
 
-Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As Long)
-
 Private Declare PtrSafe Function WideCharToMultiByte Lib "kernel32" ( _
   ByVal CodePage As Long, _
   ByVal dwFlags As Long, _
@@ -36,6 +34,10 @@ Private Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" ( _
   ByVal cchWideChar As Long _
 ) As Long
 
+Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As Long)
+
+Private Const NO_LENGTH_LIMIT As Long = -1
+
 Private Const VERSION_MASK As Long = &HFFFF0000
 Private Const VERSION_1 As Long = &H80010000
 
@@ -44,6 +46,8 @@ Private m_init As Boolean
 Private m_trans As TTransport
 Private m_strictRead As Boolean
 Private m_strictWrite As Boolean
+Private m_stringLengthLimit As Long
+Private m_containerLengthLimit As Long
 
 Private Sub Class_Initialize()
   m_init = False
@@ -52,20 +56,22 @@ Private Sub Class_Initialize()
   m_strictWrite = False
 End Sub
 
-Public Sub Init(ByVal Trans As TTransport, Optional ByVal StrictRead As Boolean = False, Optional ByVal StrictWrite As Boolean = True)
+Public Sub Init(ByVal Trans As TTransport, Optional ByVal StrictRead As Boolean = False, Optional ByVal StrictWrite As Boolean = True, Optional ByVal StringLengthLimit As Long = NO_LENGTH_LIMIT, Optional ByVal ContainerLengthLimit As Long = NO_LENGTH_LIMIT)
   Debug.Assert Not m_init
   m_init = True
   Set m_trans = Trans
   m_strictRead = StrictRead
   m_strictWrite = StrictWrite
+  m_stringLengthLimit = StringLengthLimit
+  m_containerLengthLimit = ContainerLengthLimit
 End Sub
 
 ' Transport
 
-Public Function GetTransport() As TTransport
+Public Property Get Transport() As TTransport
   Debug.Assert m_init
-  Set GetTransport = m_trans
-End Function
+  Set Transport = m_trans
+End Property
 
 ' Writing
 
@@ -219,31 +225,29 @@ Public Function ReadMessageBegin() As TMessage
   Size = ReadI32
   
   Dim Name As String
-  Dim Type_ As Byte
-  Dim SeqId As Long
+  Dim TType As Byte
   
   If Size < 0 Then
     Dim Version As Long
     Version = Size And VERSION_MASK
+
     If Version <> VERSION_1 Then
       Err.Raise 5, Description:="Bad version in ReadMessageBegin"
     End If
 
     Name = ReadString
-    SeqId = ReadI32
-
-    Set ReadMessageBegin = New TMessage
-    ReadMessageBegin.Init Name, CByte(Size And &HFF&), SeqId
+    TType = CByte(Size And &HFF&)
   ElseIf m_strictRead Then
     Err.Raise 5, Description:="Missing version in ReadMessageBegin, old client?"
   Else
+    CheckStringLength Size
     Name = ReadStringBody(Size)
-    Type_ = ReadByte
-    SeqId = ReadI32
-
-    Set ReadMessageBegin = New TMessage
-    ReadMessageBegin.Init Name, Type_, SeqId
+    TType = ReadByte
   End If
+  
+  Dim SeqId As Long
+  SeqId = ReadI32
+  Set ReadMessageBegin = NewTMessage(Name, TType, SeqId)
 End Function
 
 Public Sub ReadMessageEnd()
@@ -252,8 +256,7 @@ End Sub
 
 Public Function ReadStructBegin() As TStruct
   Debug.Assert m_init
-  Set ReadStructBegin = New TStruct
-  ReadStructBegin.Init vbNullString
+  Set ReadStructBegin = NewTStruct(vbNullString)
 End Function
 
 Public Sub ReadStructEnd()
@@ -263,18 +266,17 @@ End Sub
 Public Function ReadFieldBegin() As TField
   Debug.Assert m_init
   
-  Dim Type_ As Byte
-  Type_ = ReadByte
+  Dim TType As Byte
+  TType = ReadByte
   
   Dim Id As Integer
-  If Type_ = TType_Stop Then
+  If TType = TType_Stop Then
     Id = 0
   Else
     Id = ReadI16
   End If
   
-  Set ReadFieldBegin = New TField
-  ReadFieldBegin.Init vbNullString, Type_, Id
+  Set ReadFieldBegin = NewTField(vbNullString, TType, Id)
 End Function
 
 Public Sub ReadFieldEnd()
@@ -286,13 +288,15 @@ Public Function ReadMapBegin() As TMap
   
   Dim KType As Byte
   KType = ReadByte
+  
   Dim VType As Byte
   VType = ReadByte
+  
   Dim Size As Long
   Size = ReadI32
+  CheckContainerLength Size
   
-  Set ReadMapBegin = New TMap
-  ReadMapBegin.Init KType, VType, Size
+  Set ReadMapBegin = NewTMap(KType, VType, Size)
 End Function
 
 Public Sub ReadMapEnd()
@@ -302,14 +306,14 @@ End Sub
 Public Function ReadListBegin() As TList
   Debug.Assert m_init
   
-  Dim Type_ As Byte
-  Type_ = ReadByte
+  Dim TType As Byte
+  TType = ReadByte
   
   Dim Size As Long
   Size = ReadI32
+  CheckContainerLength Size
   
-  Set ReadListBegin = New TList
-  ReadListBegin.Init Type_, Size
+  Set ReadListBegin = NewTList(TType, Size)
 End Function
 
 Public Sub ReadListEnd()
@@ -319,14 +323,14 @@ End Sub
 Public Function ReadSetBegin() As TSet
   Debug.Assert m_init
   
-  Dim Type_ As Byte
-  Type_ = ReadByte
+  Dim TType As Byte
+  TType = ReadByte
   
   Dim Size As Long
   Size = ReadI32
+  CheckContainerLength Size
   
-  Set ReadSetBegin = New TSet
-  ReadSetBegin.Init Type_, Size
+  Set ReadSetBegin = NewTSet(TType, Size)
 End Function
 
 Public Sub ReadSetEnd()
@@ -340,22 +344,28 @@ End Function
 
 Public Function ReadByte() As Byte
   Debug.Assert m_init
+  
   Dim Buf(0) As Byte
   m_trans.ReadAll Buf, 0, 1
+  
   ReadByte = Buf(0)
 End Function
 
 Public Function ReadI16() As Integer
   Debug.Assert m_init
+  
   Dim Buf(1) As Byte
   m_trans.ReadAll Buf, 0, 2
+  
   ReadI16 = CInt(Buf(0)) * &H100 + CLng(Buf(1))
 End Function
 
 Public Function ReadI32() As Long
   Debug.Assert m_init
+  
   Dim Buf(3) As Byte
   m_trans.ReadAll Buf, 0, 4
+  
   ReadI32 = CLng(Buf(0) And &H7F) * &H1000000 + CLng(Buf(1)) * &H10000 + CLng(Buf(2)) * &H100 + CLng(Buf(3))
   If (Buf(0) And &H80) = &H80 Then
     ReadI32 = &H80000000 + ReadI32
@@ -364,8 +374,10 @@ End Function
 
 Public Function ReadDouble() As Double
   Debug.Assert m_init
+  
   Dim Buf(7) As Byte
   m_trans.ReadAll Buf, 0, 8
+  
   CopyMemory VarPtr(ReadDouble), VarPtr(Buf(0)), 8
 End Function
 
@@ -391,8 +403,11 @@ End Function
 
 Public Function ReadString() As String
   Debug.Assert m_init
+  
   Dim Size As Long
   Size = ReadI32
+  CheckStringLength Size
+  
   ReadString = ReadStringBody(Size)
 End Function
 
@@ -401,6 +416,7 @@ Public Function ReadBinary() As Byte()
   
   Dim Size As Long
   Size = ReadI32
+  CheckStringLength Size
   
   Dim Buf() As Byte
   ReDim Buf(Size - 1)
@@ -408,6 +424,22 @@ Public Function ReadBinary() As Byte()
 
   ReadBinary = Buf
 End Function
+
+Private Sub CheckStringLength(ByVal Size As Long)
+  If Size < 0 Then
+    Err.Raise 5, Description:="Negative length"
+  ElseIf m_stringLengthLimit <> NO_LENGTH_LIMIT And Size > m_stringLengthLimit Then
+    Err.Raise 5, Description:="Length exceeded max allowed"
+  End If
+End Sub
+
+Private Sub CheckContainerLength(ByVal Size As Long)
+  If Size < 0 Then
+    Err.Raise 5, Description:="Negative length"
+  ElseIf m_containerLengthLimit <> NO_LENGTH_LIMIT And Size > m_containerLengthLimit Then
+    Err.Raise 5, Description:="Length exceeded max allowed"
+  End If
+End Sub
 
 ' Reset
 
@@ -418,9 +450,9 @@ End Sub
 
 ' Interface implementation
 
-Private Function TProtocol_GetTransport() As TTransport
-  Set TProtocol_GetTransport = GetTransport()
-End Function
+Private Property Get TProtocol_Transport() As TTransport
+  Set TProtocol_Transport = Transport
+End Property
 
 Private Sub TProtocol_WriteMessageBegin(ByVal Message As TMessage)
   WriteMessageBegin Message
@@ -581,3 +613,5 @@ End Function
 Public Sub TProtocol_Reset()
   Reset
 End Sub
+
+

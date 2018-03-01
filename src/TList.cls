@@ -21,11 +21,11 @@ Private Sub Class_Initialize()
   m_size = 0
 End Sub
 
-Public Sub Init(ByVal T As Byte, ByVal s As Long)
+Public Sub Init(ByVal ElemType As Byte, ByVal Size As Long)
   Debug.Assert Not m_init
   m_init = True
-  m_elemType = T
-  m_size = s
+  m_elemType = ElemType
+  m_size = Size
 End Sub
 
 Public Property Get ElemType() As Byte

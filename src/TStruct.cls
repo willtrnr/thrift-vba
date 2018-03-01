@@ -19,10 +19,10 @@ Private Sub Class_Initialize()
   m_name = vbNullString
 End Sub
 
-Public Sub Init(ByVal N As String)
+Public Sub Init(ByVal Name As String)
   Debug.Assert Not m_init
   m_init = True
-  m_name = N
+  m_name = Name
 End Sub
 
 Public Property Get Name() As String
