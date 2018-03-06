@@ -4,14 +4,21 @@ Option Explicit
 
 Private SeqId As Long
 
-Public Sub Main()
+Public Sub ThriftTest()
   Dim Trans As TTransport
-  Set Trans = NewTHttpClient("http://127.0.0.1:8888")
-  
-  Dim Proto As TProtocol
-  Set Proto = NewTMultiplexedProtocol(NewTBinaryProtocol(Trans), "test")
+  Set Trans = NewTSocket("127.0.0.1", 8888) 'NewTHttpClient("http://127.0.0.1:8888")
 
-  Debug.Print Add(Proto, 3, 5)
+  Dim Proto As TProtocol
+  Set Proto = NewTBinaryProtocol(Trans)
+
+  Trans.TOpen
+
+  Dim I As Long
+  For I = 0 To 20
+    Debug.Print Add(Proto, I, I)
+  Next I
+
+  Trans.TClose
 End Sub
 
 Private Function NextSeqId() As Long

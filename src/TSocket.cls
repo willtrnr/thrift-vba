@@ -2,12 +2,11 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "TFileTransport"
+Attribute VB_Name = "TSocket"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'@Folder("Thrift.Transport")
 Option Explicit
 
 Implements TTransport
@@ -16,50 +15,51 @@ Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByV
 
 Private m_init As Boolean
 
-Private m_path As String
-Private m_stream As ADODB.Stream
+Private m_host As String
+Private m_port As Long
+
+Private m_socket As LongPtr
 
 Private Sub Class_Initialize()
   m_init = False
-  m_path = vbNullString
-  Set m_stream = Nothing
+  m_host = vbNullString
+  m_port = 0
+  m_socket = Winsock2.INVALID_SOCKET
 End Sub
 
-Public Sub Init(ByVal Path As String)
+Public Sub Init(ByVal Host As String, ByVal Port As Long)
   Debug.Assert Not m_init
   m_init = True
-  m_path = Path
+  m_host = Host
+  m_port = Port
 End Sub
 
 Public Function IsOpen() As Boolean
   Debug.Assert m_init
-  IsOpen = Not m_stream Is Nothing
+  IsOpen = m_socket <> Winsock2.INVALID_SOCKET
 End Function
 
 Public Function Peek() As Boolean
   Debug.Assert m_init
-  If Not m_stream Is Nothing Then
-    Peek = Not m_stream.EOS
-  Else
-    Peek = False
-  End If
+  Peek = IsOpen
 End Function
 
 Public Sub TOpen()
   Debug.Assert m_init
-  If m_stream Is Nothing Then
-    Set m_stream = New ADODB.Stream
-    m_stream.Open
-    m_stream.Type = adTypeBinary
-    m_stream.LoadFromFile m_path
+  
+  If IsOpen Then
+    Err.Raise 5, Description:="Socket already connected"
   End If
+  
+  Winsock2.Startup
+  m_socket = Winsock2.Connect(m_host, m_port, Winsock2.AF_UNSPEC, Winsock2.SOCK_STREAM, Winsock2.IPPROTO_TCP)
 End Sub
 
 Public Sub TClose()
   Debug.Assert m_init
-  If Not m_stream Is Nothing Then
-    m_stream.Close
-    Set m_stream = Nothing
+  If m_socket <> Winsock2.INVALID_SOCKET Then
+    Winsock2.Disconnect m_socket
+    m_socket = Winsock2.INVALID_SOCKET
   End If
 End Sub
 
@@ -67,37 +67,33 @@ Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As 
   Debug.Assert m_init
   
   If Not IsOpen Then
-    Err.Raise 5, Description:="Must open before reading"
+    Err.Raise 5, Description:="Socket is not connected"
   End If
   
-  Dim B As Variant: B = m_stream.Read(Length)
-  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), UBound(B) + 1
-  Read = UBound(B) + 1
+  Dim B() As Byte: ReDim B(Length - 1)
+  Read = Winsock2.Recv(m_socket, B)
+  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), Read
 End Function
 
 Public Function ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
-  
-  If Not IsOpen Then
-    Err.Raise 5, Description:="Must open before reading"
+
+  ReadAll = Read(Buf, Offset, Length)
+  If ReadAll <> Length Then
+    Err.Raise 5, Description:="Cannot read, EOS"
   End If
-  
-  Dim B As Variant: B = m_stream.Read(Length)
-  If UBound(B) + 1 <> Length Then
-    Err.Raise 5, Description:="End of file reached"
-  End If
-  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), Length
-  ReadAll = Length
 End Function
 
 Public Sub TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
   Debug.Assert m_init
-  Err.Raise 5, Description:="Not supported"
+  
+  Dim B() As Byte: ReDim B(Length - 1)
+  CopyMemory VarPtr(B(0)), VarPtr(Buf(Offset)), Length
+  Winsock2.Send m_socket, B
 End Sub
 
 Public Sub Flush()
   Debug.Assert m_init
-  Err.Raise 5, Description:="Not supported"
 End Sub
 
 

@@ -67,8 +67,7 @@ Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As 
     Err.Raise 5, Description:="Response buffer is empty, no request"
   End If
 
-  Dim Bytes() As Byte
-  Bytes = m_inputStream.Read(Length)
+  Dim Bytes() As Byte: Bytes = m_inputStream.Read(Length)
   CopyMemory VarPtr(Buf(Offset)), VarPtr(Bytes(0)), UBound(Bytes) + 1
   Read = UBound(Bytes) + 1
 End Function
@@ -85,8 +84,7 @@ End Function
 Public Sub TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
   Debug.Assert m_init
   
-  Dim B() As Byte
-  ReDim B(Length - 1)
+  Dim B() As Byte: ReDim B(Length - 1)
   CopyMemory VarPtr(B(0)), VarPtr(Buf(Offset)), Length
   m_outputStream.Write B
 End Sub
@@ -109,9 +107,9 @@ Public Sub Flush()
   Xhr.setRequestHeader "User-Agent", "VBA/THttpClient"
   
   m_outputStream.Position = 0
-  Xhr.send m_outputStream.Read(m_outputStream.Size)
-  
+  Xhr.Send m_outputStream.Read(m_outputStream.Size)
   m_outputStream.Close
+
   Set m_outputStream = New ADODB.Stream
   m_outputStream.Mode = adModeReadWrite
   m_outputStream.Type = adTypeBinary

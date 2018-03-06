@@ -9,8 +9,8 @@ Public Sub Skip(ByVal Proto As TProtocol, ByVal TType As Byte, Optional ByVal Ma
     Err.Raise 5, Description:="Maximum skip depth exceeded"
   End If
 
-  Dim Field As TField
   Dim I As Long
+  Dim Field As TField
   Select Case TType
     Case TType_Bool
       Proto.ReadBool

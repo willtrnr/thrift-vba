@@ -141,8 +141,7 @@ End Property
 
 Public Function Equals(ByVal Other As TLongLong) As Boolean
   Debug.Assert m_init
-  Dim OtherBytes() As Byte
-  OtherBytes = Other.Bytes
+  Dim OtherBytes() As Byte: OtherBytes = Other.Bytes
   Equals = _
     m_bytes(0) = OtherBytes(0) And _
     m_bytes(1) = OtherBytes(1) And _

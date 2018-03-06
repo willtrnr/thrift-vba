@@ -78,9 +78,7 @@ End Property
 Public Sub WriteMessageBegin(ByVal Message As TMessage)
   Debug.Assert m_init
   If m_strictWrite Then
-    Dim Version As Long
-    Version = VERSION_1 Or CLng(Message.TType)
-    WriteI32 Version
+    WriteI32 (VERSION_1 Or CLng(Message.TType))
     WriteString Message.Name
     WriteI32 Message.SeqId
   Else
@@ -159,8 +157,7 @@ End Sub
 
 Public Sub WriteByte(ByVal B As Byte)
   Debug.Assert m_init
-  Dim Buf(0) As Byte
-  Buf(0) = B
+  Dim Buf(0) As Byte: Buf(0) = B
   m_trans.TWrite Buf, 0, 1
 End Sub
 
@@ -204,9 +201,7 @@ Public Sub WriteString(ByVal Str As String)
   Else
     Dim Buf() As Byte
     
-    Dim Size As Long
-    Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, 0&, 0&, 0&, 0&)
-    
+    Dim Size As Long: Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, 0&, 0&, 0&, 0&)
     ReDim Buf(Size - 1)
     Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, VarPtr(Buf(0)), Size, 0&, 0&)
     
@@ -233,13 +228,9 @@ Public Function ReadMessageBegin() As TMessage
   Dim TType As Byte
   
   If Size < 0 Then
-    Dim Version As Long
-    Version = Size And VERSION_MASK
-
-    If Version <> VERSION_1 Then
+    If (Size And VERSION_MASK) <> VERSION_1 Then
       Err.Raise 5, Description:="Bad version in ReadMessageBegin"
     End If
-
     Name = ReadString
     TType = CByte(Size And &HFF&)
   ElseIf m_strictRead Then
@@ -250,8 +241,7 @@ Public Function ReadMessageBegin() As TMessage
     TType = ReadByte
   End If
   
-  Dim SeqId As Long
-  SeqId = ReadI32
+  Dim SeqId As Long: SeqId = ReadI32
   Set ReadMessageBegin = NewTMessage(Name, TType, SeqId)
 End Function
 
@@ -271,9 +261,8 @@ End Sub
 Public Function ReadFieldBegin() As TField
   Debug.Assert m_init
   
-  Dim TType As Byte
-  TType = ReadByte
-  
+  Dim TType As Byte: TType = ReadByte
+
   Dim Id As Integer
   If TType = TType_Stop Then
     Id = 0
@@ -291,14 +280,9 @@ End Sub
 Public Function ReadMapBegin() As TMap
   Debug.Assert m_init
   
-  Dim KType As Byte
-  KType = ReadByte
-  
-  Dim VType As Byte
-  VType = ReadByte
-  
-  Dim Size As Long
-  Size = ReadI32
+  Dim KType As Byte: KType = ReadByte
+  Dim VType As Byte: VType = ReadByte
+  Dim Size As Long: Size = ReadI32
   CheckContainerLength Size
   
   Set ReadMapBegin = NewTMap(KType, VType, Size)
@@ -311,11 +295,8 @@ End Sub
 Public Function ReadListBegin() As TList
   Debug.Assert m_init
   
-  Dim TType As Byte
-  TType = ReadByte
-  
-  Dim Size As Long
-  Size = ReadI32
+  Dim TType As Byte: TType = ReadByte
+  Dim Size As Long: Size = ReadI32
   CheckContainerLength Size
   
   Set ReadListBegin = NewTList(TType, Size)
@@ -328,11 +309,8 @@ End Sub
 Public Function ReadSetBegin() As TSet
   Debug.Assert m_init
   
-  Dim TType As Byte
-  TType = ReadByte
-  
-  Dim Size As Long
-  Size = ReadI32
+  Dim TType As Byte: TType = ReadByte
+  Dim Size As Long: Size = ReadI32
   CheckContainerLength Size
   
   Set ReadSetBegin = NewTSet(TType, Size)
@@ -403,15 +381,11 @@ Private Function ReadStringBody(ByVal Size As Long) As String
   If Size = 0 Then
     ReadStringBody = vbNullString
   Else
-    Dim Buf() As Byte
-    ReDim Buf(Size - 1)
+    Dim Buf() As Byte: ReDim Buf(Size - 1)
     m_trans.ReadAll Buf, 0, Size
     
-    Dim StrSize As Long
-    StrSize = MultiByteToWideChar(CP_UTF8, 0&, VarPtr(Buf(0)), Size, 0&, 0&)
-
-    Dim StrBuf() As Byte
-    ReDim StrBuf(StrSize * 2 - 1)
+    Dim StrSize As Long: StrSize = MultiByteToWideChar(CP_UTF8, 0&, VarPtr(Buf(0)), Size, 0&, 0&)
+    Dim StrBuf() As Byte: ReDim StrBuf(StrSize * 2 - 1)
     MultiByteToWideChar CP_UTF8, 0&, VarPtr(Buf(0)), Size, VarPtr(StrBuf(0)), StrSize
 
     ReadStringBody = StrBuf
@@ -421,22 +395,19 @@ End Function
 Public Function ReadString() As String
   Debug.Assert m_init
   
-  Dim Size As Long
-  Size = ReadI32
+  Dim Size As Long: Size = ReadI32
   CheckStringLength Size
-  
+
   ReadString = ReadStringBody(Size)
 End Function
 
 Public Function ReadBinary() As Byte()
   Debug.Assert m_init
   
-  Dim Size As Long
-  Size = ReadI32
+  Dim Size As Long: Size = ReadI32
   CheckStringLength Size
   
-  Dim Buf() As Byte
-  ReDim Buf(Size - 1)
+  Dim Buf() As Byte: ReDim Buf(Size - 1)
   m_trans.ReadAll Buf, 0, Size
 
   ReadBinary = Buf

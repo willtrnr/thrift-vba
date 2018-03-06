@@ -33,11 +33,8 @@ End Sub
 Public Sub TRead(ByVal Proto As TProtocol)
   Debug.Assert Not m_init
   
-  Dim TType As Byte
-  TType = 0
-  
-  Dim Message As String
-  Message = vbNullString
+  Dim TType As Byte: TType = 0
+  Dim Message As String: Message = vbNullString
   
   Proto.ReadStructBegin
   
@@ -64,8 +61,7 @@ End Sub
 Public Sub TWrite(ByVal Proto As TProtocol)
   Debug.Assert m_init
   
-  Dim Struct As TStruct
-  Set Struct = NewTStruct("TApplicationException")
+  Dim Struct As TStruct: Set Struct = NewTStruct("TApplicationException")
   Proto.WriteStructBegin Struct
   
   Dim Field As TField
