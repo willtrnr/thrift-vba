@@ -145,9 +145,9 @@ Public Sub WriteString(ByVal Str As String)
   m_proto.WriteString Str
 End Sub
 
-Public Sub WriteBinary(ByRef Buf() As Byte)
+Public Sub WriteBinary(ByRef Buffer() As Byte)
   Debug.Assert m_init
-  m_proto.WriteBinary Buf
+  m_proto.WriteBinary Buffer
 End Sub
 
 ' Reading
@@ -346,8 +346,8 @@ Private Sub TProtocol_WriteString(ByVal Str As String)
   WriteString Str
 End Sub
 
-Private Sub TProtocol_WriteBinary(ByRef Buf() As Byte)
-  WriteBinary Buf
+Private Sub TProtocol_WriteBinary(ByRef Buffer() As Byte)
+  WriteBinary Buffer
 End Sub
 
 Private Function TProtocol_ReadMessageBegin() As TMessage

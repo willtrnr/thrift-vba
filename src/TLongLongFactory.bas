@@ -1,4 +1,5 @@
 Attribute VB_Name = "TLongLongFactory"
+'@Folder("Thrift")
 Option Explicit
 
 Private TLongLong0 As TLongLong

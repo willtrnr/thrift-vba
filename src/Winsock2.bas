@@ -1,4 +1,5 @@
 Attribute VB_Name = "Winsock2"
+'@Folder("Win32")
 Option Explicit
 
 Public Const AF_UNSPEC As Long = 0
@@ -61,39 +62,26 @@ Private Declare PtrSafe Function WS2_getaddrinfo Lib "Ws2_32.dll" Alias "getaddr
 Private Declare PtrSafe Sub WS2_freeaddrinfo Lib "Ws2_32.dll" Alias "freeaddrinfo" (ByVal ai As LongPtr)
 Private Declare PtrSafe Function WS2_socket Lib "Ws2_32.dll" Alias "socket" (ByVal af As Long, ByVal SockType As Long, ByVal Protocol As Long) As LongPtr
 Private Declare PtrSafe Function WS2_connect Lib "Ws2_32.dll" Alias "connect" (ByVal s As LongPtr, ByRef Name As sockaddr, ByVal namelen As Long) As Long
-Private Declare PtrSafe Function WS2_send Lib "Ws2_32.dll" Alias "send" (ByVal s As LongPtr, ByVal Buf As LongPtr, ByVal len_ As Long, ByVal Flags As Long) As Long
-Private Declare PtrSafe Function WS2_recv Lib "Ws2_32.dll" Alias "recv" (ByVal s As LongPtr, ByVal Buf As LongPtr, ByVal len_ As Long, ByVal Flags As Long) As Long
+Private Declare PtrSafe Function WS2_send Lib "Ws2_32.dll" Alias "send" (ByVal s As LongPtr, ByVal buf As LongPtr, ByVal len_ As Long, ByVal Flags As Long) As Long
+Private Declare PtrSafe Function WS2_recv Lib "Ws2_32.dll" Alias "recv" (ByVal s As LongPtr, ByVal buf As LongPtr, ByVal len_ As Long, ByVal Flags As Long) As Long
 Private Declare PtrSafe Function WS2_shutdown Lib "Ws2_32.dll" Alias "shutdown" (ByVal s As LongPtr, ByVal how As Long) As Long
 Private Declare PtrSafe Function WS2_closesocket Lib "Ws2_32.dll" Alias "closesocket" (ByVal s As LongPtr) As Long
 
 Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As Long)
 
+Private OpenCount As Long
+
 Private Function MAKEWORD(ByVal bLow As Byte, ByVal bHigh As Byte) As Integer
   MAKEWORD = CInt((CLng(bHigh) * &H100&) Or CLng(bLow))
 End Function
 
-Private Function LOBYTE(ByVal wValue As Integer) As Byte
-  LOBYTE = CByte(wValue And &HFF)
-End Function
-
-Private Function HIBYTE(ByVal wValue As Integer) As Byte
-  HIBYTE = CByte((wValue \ &H100&) And &HFF)
-End Function
-
-Public Sub Startup()
-  Dim Data As WSADATA
-  Dim Status As Long: Status = WS2_WSAStartup(MAKEWORD(2, 2), Data)
-  Debug.Assert Status = 0
-  Debug.Assert LOBYTE(Data.wVersion) = 2
-  Debug.Assert HIBYTE(Data.wVersion) = 2
-End Sub
-
-Public Sub Cleanup()
-  Dim Status As Long: Status = WS2_WSACleanup
-  Debug.Assert Status = 0
-End Sub
-
 Public Function Connect(ByVal Host As String, ByVal Port As Long, ByVal Family As Long, ByVal SockType As Long, ByVal Protocol As Long) As LongPtr
+  If OpenCount <= 0 Then
+    Dim Data As WSADATA
+    Dim Status As Long: Status = WS2_WSAStartup(MAKEWORD(2, 2), Data)
+    Debug.Assert Status = 0
+  End If
+
   Dim Result As Long
 
   Dim Hints As addrinfo
@@ -127,19 +115,20 @@ Public Function Connect(ByVal Host As String, ByVal Port As Long, ByVal Family A
     Err.Raise WS2_WSAGetLastError(), Description:="Cannot connect socket"
   End If
 
+  OpenCount = OpenCount + 1
   Connect = Sock
 End Function
 
-Public Function Send(ByVal Sock As LongPtr, ByRef Buffer() As Byte, Optional ByVal Flags As Long = 0) As Long
-  Dim Result As Long: Result = WS2_send(Sock, VarPtr(Buffer(0)), UBound(Buffer) + 1, Flags)
+Public Function Send(ByVal Sock As LongPtr, ByVal Buffer As LongPtr, ByVal Length As Long, Optional ByVal Flags As Long = 0) As Long
+  Dim Result As Long: Result = WS2_send(Sock, Buffer, Length, Flags)
   If Result = SOCKET_ERROR Then
     Err.Raise WS2_WSAGetLastError(), Description:="Send error"
   End If
   Send = Result
 End Function
 
-Public Function Recv(ByVal Sock As LongPtr, ByRef Buffer() As Byte, Optional ByVal Flags As Long = 0) As Long
-  Dim Result As Long: Result = WS2_recv(Sock, VarPtr(Buffer(0)), UBound(Buffer) + 1, Flags)
+Public Function Recv(ByVal Sock As LongPtr, ByVal Buffer As LongPtr, ByVal Length As Long, Optional ByVal Flags As Long = 0) As Long
+  Dim Result As Long: Result = WS2_recv(Sock, Buffer, Length, Flags)
   If Result = SOCKET_ERROR Then
     Err.Raise WS2_WSAGetLastError(), Description:="Receive error"
   End If
@@ -149,4 +138,9 @@ End Function
 Public Sub Disconnect(ByVal Sock As LongPtr)
   WS2_shutdown Sock, SD_BOTH
   WS2_closesocket Sock
+
+  OpenCount = OpenCount - 1
+  If OpenCount <= 0 Then
+    WS2_WSACleanup
+  End If
 End Sub

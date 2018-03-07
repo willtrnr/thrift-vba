@@ -157,29 +157,29 @@ End Sub
 
 Public Sub WriteByte(ByVal B As Byte)
   Debug.Assert m_init
-  Dim Buf(0) As Byte: Buf(0) = B
-  m_trans.TWrite Buf, 0, 1
+  Dim Buffer(0) As Byte: Buffer(0) = B
+  m_trans.TWrite Buffer, 0, 1
 End Sub
 
 Public Sub WriteI16(ByVal I16 As Integer)
   Debug.Assert m_init
-  Dim Buf(1) As Byte
-  Buf(0) = CByte((I16 And &HFF00&) \ &H100&)
-  Buf(1) = CByte(I16 And &HFF&)
-  m_trans.TWrite Buf, 0, 2
+  Dim Buffer(1) As Byte
+  Buffer(0) = CByte((I16 And &HFF00&) \ &H100&)
+  Buffer(1) = CByte(I16 And &HFF&)
+  m_trans.TWrite Buffer, 0, 2
 End Sub
 
 Public Sub WriteI32(ByVal I32 As Long)
   Debug.Assert m_init
-  Dim Buf(3) As Byte
-  Buf(0) = CByte((I32 And &H7F000000) \ &H1000000)
-  Buf(1) = CByte((I32 And &HFF0000) \ &H10000)
-  Buf(2) = CByte((I32 And &HFF00&) \ &H100&)
-  Buf(3) = CByte(I32 And &HFF&)
+  Dim Buffer(3) As Byte
+  Buffer(0) = CByte((I32 And &H7F000000) \ &H1000000)
+  Buffer(1) = CByte((I32 And &HFF0000) \ &H10000)
+  Buffer(2) = CByte((I32 And &HFF00&) \ &H100&)
+  Buffer(3) = CByte(I32 And &HFF&)
   If I32 < 0 Then
-    Buf(0) = Buf(0) Or &H80
+    Buffer(0) = Buffer(0) Or &H80
   End If
-  m_trans.TWrite Buf, 0, 4
+  m_trans.TWrite Buffer, 0, 4
 End Sub
 
 Public Sub WriteI64(ByVal I64 As TLongLong)
@@ -189,9 +189,9 @@ End Sub
 
 Public Sub WriteDouble(ByVal Dub As Double)
   Debug.Assert m_init
-  Dim Buf(7) As Byte
-  CopyMemory VarPtr(Buf(0)), VarPtr(Dub), 8
-  m_trans.TWrite Buf, 0, 8
+  Dim Buffer(7) As Byte
+  CopyMemory VarPtr(Buffer(0)), VarPtr(Dub), 8
+  m_trans.TWrite Buffer, 0, 8
 End Sub
 
 Public Sub WriteString(ByVal Str As String)
@@ -199,21 +199,21 @@ Public Sub WriteString(ByVal Str As String)
   If Str = vbNullString Then
       WriteI32 0
   Else
-    Dim Buf() As Byte
+    Dim Buffer() As Byte
     
     Dim Size As Long: Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, 0&, 0&, 0&, 0&)
-    ReDim Buf(Size - 1)
-    Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, VarPtr(Buf(0)), Size, 0&, 0&)
+    ReDim Buffer(Size - 1)
+    Size = WideCharToMultiByte(CP_UTF8, 0&, StrPtr(Str), -1&, VarPtr(Buffer(0)), Size, 0&, 0&)
     
     WriteI32 Size - 1
-    m_trans.TWrite Buf, 0, Size - 1
+    m_trans.TWrite Buffer, 0, Size - 1
   End If
 End Sub
 
-Public Sub WriteBinary(ByRef Buf() As Byte)
+Public Sub WriteBinary(ByRef Buffer() As Byte)
   Debug.Assert m_init
-  WriteI32 UBound(Buf) + 1
-  m_trans.TWrite Buf, 0, UBound(Buf) + 1
+  WriteI32 UBound(Buffer) + 1
+  m_trans.TWrite Buffer, 0, UBound(Buffer) + 1
 End Sub
 
 ' Reading
@@ -328,20 +328,20 @@ End Function
 Public Function ReadByte() As Byte
   Debug.Assert m_init
   
-  Dim Buf(0) As Byte
-  m_trans.ReadAll Buf, 0, 1
+  Dim Buffer(0) As Byte
+  m_trans.ReadAll Buffer, 0, 1
   
-  ReadByte = Buf(0)
+  ReadByte = Buffer(0)
 End Function
 
 Public Function ReadI16() As Integer
   Debug.Assert m_init
   
-  Dim Buf(1) As Byte
-  m_trans.ReadAll Buf, 0, 2
+  Dim Buffer(1) As Byte
+  m_trans.ReadAll Buffer, 0, 2
   
-  ReadI16 = CLng(Buf(0) And &H7F) * &H100 + CLng(Buf(1))
-  If (Buf(0) And &H80) = &H80 Then
+  ReadI16 = CLng(Buffer(0) And &H7F) * &H100 + CLng(Buffer(1))
+  If (Buffer(0) And &H80) = &H80 Then
     ReadI16 = ReadI16 Or &H8000
   End If
 End Function
@@ -349,11 +349,11 @@ End Function
 Public Function ReadI32() As Long
   Debug.Assert m_init
   
-  Dim Buf(3) As Byte
-  m_trans.ReadAll Buf, 0, 4
+  Dim Buffer(3) As Byte
+  m_trans.ReadAll Buffer, 0, 4
   
-  ReadI32 = CLng(Buf(0) And &H7F) * &H1000000 + CLng(Buf(1)) * &H10000 + CLng(Buf(2)) * &H100 + CLng(Buf(3))
-  If (Buf(0) And &H80) = &H80 Then
+  ReadI32 = CLng(Buffer(0) And &H7F) * &H1000000 + CLng(Buffer(1)) * &H10000 + CLng(Buffer(2)) * &H100 + CLng(Buffer(3))
+  If (Buffer(0) And &H80) = &H80 Then
     ReadI32 = ReadI32 Or &H80000000
   End If
 End Function
@@ -361,19 +361,19 @@ End Function
 Public Function ReadI64() As TLongLong
   Debug.Assert m_init
 
-  Dim Buf(7) As Byte
-  m_trans.ReadAll Buf, 0, 8
+  Dim Buffer(7) As Byte
+  m_trans.ReadAll Buffer, 0, 8
 
-  Set ReadI64 = NewTLongLong(Buf)
+  Set ReadI64 = NewTLongLong(Buffer)
 End Function
 
 Public Function ReadDouble() As Double
   Debug.Assert m_init
   
-  Dim Buf(7) As Byte
-  m_trans.ReadAll Buf, 0, 8
+  Dim Buffer(7) As Byte
+  m_trans.ReadAll Buffer, 0, 8
   
-  CopyMemory VarPtr(ReadDouble), VarPtr(Buf(0)), 8
+  CopyMemory VarPtr(ReadDouble), VarPtr(Buffer(0)), 8
 End Function
 
 Private Function ReadStringBody(ByVal Size As Long) As String
@@ -381,14 +381,14 @@ Private Function ReadStringBody(ByVal Size As Long) As String
   If Size = 0 Then
     ReadStringBody = vbNullString
   Else
-    Dim Buf() As Byte: ReDim Buf(Size - 1)
-    m_trans.ReadAll Buf, 0, Size
+    Dim Buffer() As Byte: ReDim Buffer(Size - 1)
+    m_trans.ReadAll Buffer, 0, Size
     
-    Dim StrSize As Long: StrSize = MultiByteToWideChar(CP_UTF8, 0&, VarPtr(Buf(0)), Size, 0&, 0&)
-    Dim StrBuf() As Byte: ReDim StrBuf(StrSize * 2 - 1)
-    MultiByteToWideChar CP_UTF8, 0&, VarPtr(Buf(0)), Size, VarPtr(StrBuf(0)), StrSize
+    Dim StrSize As Long: StrSize = MultiByteToWideChar(CP_UTF8, 0&, VarPtr(Buffer(0)), Size, 0&, 0&)
+    Dim StrBuffer() As Byte: ReDim StrBuffer(StrSize * 2 - 1)
+    MultiByteToWideChar CP_UTF8, 0&, VarPtr(Buffer(0)), Size, VarPtr(StrBuffer(0)), StrSize
 
-    ReadStringBody = StrBuf
+    ReadStringBody = StrBuffer
   End If
 End Function
 
@@ -407,10 +407,10 @@ Public Function ReadBinary() As Byte()
   Dim Size As Long: Size = ReadI32
   CheckStringLength Size
   
-  Dim Buf() As Byte: ReDim Buf(Size - 1)
-  m_trans.ReadAll Buf, 0, Size
+  Dim Buffer() As Byte: ReDim Buffer(Size - 1)
+  m_trans.ReadAll Buffer, 0, Size
 
-  ReadBinary = Buf
+  ReadBinary = Buffer
 End Function
 
 Private Sub CheckStringLength(ByVal Size As Long)
@@ -522,8 +522,8 @@ Private Sub TProtocol_WriteString(ByVal Str As String)
   WriteString Str
 End Sub
 
-Private Sub TProtocol_WriteBinary(ByRef Buf() As Byte)
-  WriteBinary Buf
+Private Sub TProtocol_WriteBinary(ByRef Buffer() As Byte)
+  WriteBinary Buffer
 End Sub
 
 Private Function TProtocol_ReadMessageBegin() As TMessage

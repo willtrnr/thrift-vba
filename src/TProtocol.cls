@@ -77,7 +77,7 @@ End Sub
 Public Sub WriteString(ByVal Str As String)
 End Sub
 
-Public Sub WriteBinary(ByRef Buf() As Byte)
+Public Sub WriteBinary(ByRef Buffer() As Byte)
 End Sub
 
 ' Reading

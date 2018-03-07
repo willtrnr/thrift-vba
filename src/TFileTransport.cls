@@ -63,7 +63,7 @@ Public Sub TClose()
   End If
 End Sub
 
-Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+Public Function Read(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
   
   If Not IsOpen Then
@@ -71,11 +71,11 @@ Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As 
   End If
   
   Dim B As Variant: B = m_stream.Read(Length)
-  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), UBound(B) + 1
+  CopyMemory VarPtr(Buffer(Offset)), VarPtr(B(0)), UBound(B) + 1
   Read = UBound(B) + 1
 End Function
 
-Public Function ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+Public Function ReadAll(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
   
   If Not IsOpen Then
@@ -86,11 +86,11 @@ Public Function ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length 
   If UBound(B) + 1 <> Length Then
     Err.Raise 5, Description:="End of file reached"
   End If
-  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), Length
+  CopyMemory VarPtr(Buffer(Offset)), VarPtr(B(0)), Length
   ReadAll = Length
 End Function
 
-Public Sub TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
+Public Sub TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long)
   Debug.Assert m_init
   Err.Raise 5, Description:="Not supported"
 End Sub
@@ -119,16 +119,16 @@ Private Sub TTransport_TClose()
   TClose
 End Sub
 
-Private Function TTransport_Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
-  TTransport_Read = Read(Buf, Offset, Length)
+Private Function TTransport_Read(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+  TTransport_Read = Read(Buffer, Offset, Length)
 End Function
 
-Private Function TTransport_ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
-  TTransport_ReadAll = ReadAll(Buf, Offset, Length)
+Private Function TTransport_ReadAll(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+  TTransport_ReadAll = ReadAll(Buffer, Offset, Length)
 End Function
 
-Private Sub TTransport_TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
-  TWrite Buf, Offset, Length
+Private Sub TTransport_TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long)
+  TWrite Buffer, Offset, Length
 End Sub
 
 Private Sub TTransport_Flush()

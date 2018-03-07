@@ -11,3 +11,13 @@ Public Function NewTHttpClient(ByVal Url As String) As THttpClient
   Set NewTHttpClient = New THttpClient
   NewTHttpClient.Init Url
 End Function
+
+Public Function NewTSocket(ByVal Host As String, ByVal Port As Long) As TSocket
+  Set NewTSocket = New TSocket
+  NewTSocket.Init Host, Port
+End Function
+
+Public Function NewTBufferedTransport(ByVal Trans As TTransport, Optional ByVal BufferSize As Long = 1024) As TBufferedTransport
+  Set NewTBufferedTransport = New TBufferedTransport
+  NewTBufferedTransport.Init Trans, BufferSize
+End Function

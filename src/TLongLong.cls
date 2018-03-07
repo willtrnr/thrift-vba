@@ -7,6 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
+'@Folder("Thrift")
 Option Explicit
 
 Private m_init As Boolean
@@ -27,12 +28,12 @@ End Sub
 
 Public Sub Init(ByVal Value As Variant)
   Debug.Assert Not m_init
-  m_init = True
   Select Case TypeName(Value)
     Case "Byte()"
       If LBound(Value) <> 0 Or UBound(Value) <> 7 Then
         Err.Raise 5, Description:="Wrong byte count for TLongLong"
       Else
+        m_init = True
         m_bytes(0) = Value(0)
         m_bytes(1) = Value(1)
         m_bytes(2) = Value(2)
@@ -43,8 +44,10 @@ Public Sub Init(ByVal Value As Variant)
         m_bytes(7) = Value(7)
       End If
     Case "Byte"
+      m_init = True
       m_bytes(7) = CByte(Value)
     Case "Integer"
+      m_init = True
       m_bytes(6) = CByte((Value And &H7F00) \ &H100)
       m_bytes(7) = CByte(Value And &HFF)
       If Value < 0 Then
@@ -57,6 +60,7 @@ Public Sub Init(ByVal Value As Variant)
         m_bytes(6) = m_bytes(6) Or &H80
       End If
     Case "Long"
+      m_init = True
       m_bytes(4) = CByte((Value And &H7F000000) \ &H1000000)
       m_bytes(5) = CByte((Value And &HFF0000) \ &H10000)
       m_bytes(6) = CByte((Value And &HFF00&) \ &H100&)
@@ -87,6 +91,11 @@ Public Property Get Bytes() As Byte()
   Bytes = Tmp
 End Property
 
+Public Property Get IsNegative() As Boolean
+  Debug.Assert m_init
+  IsNegative = (m_bytes(0) And &H80) = &H80
+End Property
+
 Public Property Get IsValidLong() As Boolean
   Debug.Assert m_init
   IsValidLong = False
@@ -111,7 +120,7 @@ End Property
 
 Public Property Get AsDouble() As Double
   Debug.Assert m_init
-  If (m_bytes(0) And &H80) = &H80 Then
+  If IsNegative Then
     AsDouble = CDbl(Not m_bytes(0))
     AsDouble = AsDouble * &H100 + CDbl(Not m_bytes(1))
     AsDouble = AsDouble * &H100 + CDbl(Not m_bytes(2))

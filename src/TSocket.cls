@@ -7,6 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
+'@Folder("Thrift.Transport")
 Option Explicit
 
 Implements TTransport
@@ -46,12 +47,9 @@ End Function
 
 Public Sub TOpen()
   Debug.Assert m_init
-  
   If IsOpen Then
     Err.Raise 5, Description:="Socket already connected"
   End If
-  
-  Winsock2.Startup
   m_socket = Winsock2.Connect(m_host, m_port, Winsock2.AF_UNSPEC, Winsock2.SOCK_STREAM, Winsock2.IPPROTO_TCP)
 End Sub
 
@@ -63,33 +61,28 @@ Public Sub TClose()
   End If
 End Sub
 
-Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+Public Function Read(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
-  
   If Not IsOpen Then
     Err.Raise 5, Description:="Socket is not connected"
   End If
-  
-  Dim B() As Byte: ReDim B(Length - 1)
-  Read = Winsock2.Recv(m_socket, B)
-  CopyMemory VarPtr(Buf(Offset)), VarPtr(B(0)), Read
+  Read = Winsock2.Recv(m_socket, VarPtr(Buffer(Offset)), Length)
 End Function
 
-Public Function ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+Public Function ReadAll(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
-
-  ReadAll = Read(Buf, Offset, Length)
+  ReadAll = Read(Buffer, Offset, Length)
   If ReadAll <> Length Then
     Err.Raise 5, Description:="Cannot read, EOS"
   End If
 End Function
 
-Public Sub TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
+Public Sub TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long)
   Debug.Assert m_init
-  
-  Dim B() As Byte: ReDim B(Length - 1)
-  CopyMemory VarPtr(B(0)), VarPtr(Buf(Offset)), Length
-  Winsock2.Send m_socket, B
+  If Not IsOpen Then
+    Err.Raise 5, Description:="Socket is not connected"
+  End If
+  Winsock2.Send m_socket, VarPtr(Buffer(Offset)), Length
 End Sub
 
 Public Sub Flush()
@@ -115,16 +108,16 @@ Private Sub TTransport_TClose()
   TClose
 End Sub
 
-Private Function TTransport_Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
-  TTransport_Read = Read(Buf, Offset, Length)
+Private Function TTransport_Read(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+  TTransport_Read = Read(Buffer, Offset, Length)
 End Function
 
-Private Function TTransport_ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
-  TTransport_ReadAll = ReadAll(Buf, Offset, Length)
+Private Function TTransport_ReadAll(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+  TTransport_ReadAll = ReadAll(Buffer, Offset, Length)
 End Function
 
-Private Sub TTransport_TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
-  TWrite Buf, Offset, Length
+Private Sub TTransport_TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long)
+  TWrite Buffer, Offset, Length
 End Sub
 
 Private Sub TTransport_Flush()

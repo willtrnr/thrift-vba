@@ -6,8 +6,9 @@ You can (almost) make microservices with Excel!
 
 Supports the following transport(s):
 
- * THttpClient
  * TSocket
+ * TBufferedTransport
+ * THttpClient
 
 Supports the following protocol(s):
 

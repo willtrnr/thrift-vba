@@ -25,9 +25,11 @@ Private Sub Class_Initialize()
   m_url = vbNullString
   Set m_inputStream = Nothing
   Set m_outputStream = New ADODB.Stream
-  m_outputStream.Mode = adModeReadWrite
-  m_outputStream.Type = adTypeBinary
-  m_outputStream.Open
+  With m_outputStream
+    .Mode = adModeReadWrite
+    .Type = adTypeBinary
+    .Open
+  End With
 End Sub
 
 Public Sub Init(ByVal Url As String)
@@ -56,36 +58,38 @@ Public Sub TClose()
     m_inputStream.Close
     Set m_inputStream = Nothing
   End If
-  m_outputStream.Close
-  Set m_outputStream = Nothing
+  If Not m_outputStream Is Nothing Then
+    m_outputStream.Close
+    Set m_outputStream = Nothing
+  End If
 End Sub
 
-Public Function Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+Public Function Read(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
   
   If m_inputStream Is Nothing Then
-    Err.Raise 5, Description:="Response buffer is empty, no request"
+    Err.Raise 5, Description:="Response Buffer is empty, no request"
   End If
 
   Dim Bytes() As Byte: Bytes = m_inputStream.Read(Length)
-  CopyMemory VarPtr(Buf(Offset)), VarPtr(Bytes(0)), UBound(Bytes) + 1
+  CopyMemory VarPtr(Buffer(Offset)), VarPtr(Bytes(0)), UBound(Bytes) + 1
   Read = UBound(Bytes) + 1
 End Function
 
-Public Function ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+Public Function ReadAll(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
   
-  ReadAll = Read(Buf, Offset, Length)
+  ReadAll = Read(Buffer, Offset, Length)
   If ReadAll <> Length Then
     Err.Raise 5, Description:="Cannot read, EOS"
   End If
 End Function
 
-Public Sub TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
+Public Sub TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long)
   Debug.Assert m_init
   
   Dim B() As Byte: ReDim B(Length - 1)
-  CopyMemory VarPtr(B(0)), VarPtr(Buf(Offset)), Length
+  CopyMemory VarPtr(B(0)), VarPtr(Buffer(Offset)), Length
   m_outputStream.Write B
 End Sub
 
@@ -99,32 +103,37 @@ Public Sub Flush()
   
   Dim Xhr As MSXML2.ServerXMLHTTP60
   Set Xhr = New MSXML2.ServerXMLHTTP60
-
-  Xhr.Open "POST", m_url, False
-  Xhr.setRequestHeader "Content-Type", "application/x-thrift"
-  Xhr.setRequestHeader "Content-Length", m_outputStream.Size
-  Xhr.setRequestHeader "Accept", "application/x-thrift"
-  Xhr.setRequestHeader "User-Agent", "VBA/THttpClient"
+  With Xhr
+    .Open "POST", m_url, False
+    .setRequestHeader "Content-Type", "application/x-thrift"
+    .setRequestHeader "Content-Length", m_outputStream.Size
+    .setRequestHeader "Accept", "application/x-thrift"
+    .setRequestHeader "User-Agent", "VBA/THttpClient"
+  End With
   
   m_outputStream.Position = 0
   Xhr.Send m_outputStream.Read(m_outputStream.Size)
   m_outputStream.Close
 
   Set m_outputStream = New ADODB.Stream
-  m_outputStream.Mode = adModeReadWrite
-  m_outputStream.Type = adTypeBinary
-  m_outputStream.Open
+  With m_outputStream
+    .Mode = adModeReadWrite
+    .Type = adTypeBinary
+    .Open
+  End With
   
   If Xhr.Status <> 200 Then
     Err.Raise 5, Description:="HTTP request failed"
   End If
   
   Set m_inputStream = New ADODB.Stream
-  m_inputStream.Mode = adModeReadWrite
-  m_inputStream.Type = adTypeBinary
-  m_inputStream.Open
-  m_inputStream.Write Xhr.responseBody
-  m_inputStream.Position = 0
+  With m_inputStream
+    .Mode = adModeReadWrite
+    .Type = adTypeBinary
+    .Open
+    .Write Xhr.responseBody
+    .Position = 0
+  End With
 End Sub
 
 
@@ -146,16 +155,16 @@ Private Sub TTransport_TClose()
   TClose
 End Sub
 
-Private Function TTransport_Read(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
-  TTransport_Read = Read(Buf, Offset, Length)
+Private Function TTransport_Read(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+  TTransport_Read = Read(Buffer, Offset, Length)
 End Function
 
-Private Function TTransport_ReadAll(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
-  TTransport_ReadAll = ReadAll(Buf, Offset, Length)
+Private Function TTransport_ReadAll(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
+  TTransport_ReadAll = ReadAll(Buffer, Offset, Length)
 End Function
 
-Private Sub TTransport_TWrite(ByRef Buf() As Byte, ByVal Offset As Long, ByVal Length As Long)
-  TWrite Buf, Offset, Length
+Private Sub TTransport_TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long)
+  TWrite Buffer, Offset, Length
 End Sub
 
 Private Sub TTransport_Flush()
