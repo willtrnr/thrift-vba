@@ -12,8 +12,6 @@ Option Explicit
 
 Implements TTransport
 
-Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByVal Destination As LongPtr, ByVal Source As LongPtr, ByVal Length As Long)
-
 Private m_init As Boolean
 
 Private m_host As String
@@ -71,10 +69,16 @@ End Function
 
 Public Function ReadAll(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
-  ReadAll = Read(Buffer, Offset, Length)
-  If ReadAll <> Length Then
-    Err.Raise 5, Description:="Cannot read, EOS"
-  End If
+
+  ReadAll = 0
+  While ReadAll < Length
+    Dim Res As Long
+    Res = Read(Buffer, Offset + ReadAll, Length - ReadAll)
+    If Res <= 0 Then
+      Err.Raise 5, Description:="Cannot read, EOS"
+    End If
+    ReadAll = ReadAll + Res
+  Wend
 End Function
 
 Public Sub TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long)

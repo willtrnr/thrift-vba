@@ -4,10 +4,14 @@ Thrift VBA
 A great addition to [Webxcel](https://github.com/michaelneu/webxcel).
 You can (almost) make microservices with Excel!
 
+This actually implements the minimal feature set client-wise, not sure how that
+happened.
+
 Supports the following transport(s):
 
  * TSocket
  * TBufferedTransport
+ * TFramedTransport
  * THttpClient
 
 Supports the following protocol(s):

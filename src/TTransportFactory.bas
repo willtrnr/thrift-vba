@@ -21,3 +21,8 @@ Public Function NewTBufferedTransport(ByVal Trans As TTransport, Optional ByVal 
   Set NewTBufferedTransport = New TBufferedTransport
   NewTBufferedTransport.Init Trans, BufferSize
 End Function
+
+Public Function NewTFramedTransport(ByVal Trans As TTransport, Optional ByVal MaxLength As Long = 16& * 1024& * 1024&) As TFramedTransport
+  Set NewTFramedTransport = New TFramedTransport
+  NewTFramedTransport.Init Trans, MaxLength
+End Function

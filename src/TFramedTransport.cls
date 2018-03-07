@@ -2,7 +2,7 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "TBufferedTransport"
+Attribute VB_Name = "TFramedTransport"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
@@ -16,26 +16,26 @@ Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (ByV
 
 Private m_init As Boolean
 
-Private m_bufferSize As Long
+Private m_maxLength As Long
 Private m_inputBuffer As ADODB.Stream
 Private m_outputBuffer As ADODB.Stream
 Private m_trans As TTransport
 
 Private Sub Class_Initialize()
   m_init = False
-  m_bufferSize = 0
+  m_maxLength = 0
   Set m_inputBuffer = Nothing
   Set m_outputBuffer = Nothing
   Set m_trans = Nothing
 End Sub
 
-Public Sub Init(ByVal Trans As TTransport, Optional ByVal BufferSize As Long = 1024)
+Public Sub Init(ByVal Trans As TTransport, Optional ByVal MaxLength As Long = 16& * 1024& * 1024&)
   Debug.Assert Not m_init
-  If BufferSize <= 0 Then
-    Err.Raise 5, Description:="Buffer size must be larger than 0"
+  If MaxLength <= 0 Then
+    Err.Raise 5, Description:="Maximum length must be larger than 0"
   End If
   m_init = True
-  m_bufferSize = BufferSize
+  m_maxLength = MaxLength
   Set m_inputBuffer = Nothing
   Set m_outputBuffer = Nothing
   Set m_trans = Trans
@@ -84,28 +84,33 @@ End Sub
 Public Function Read(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As Long) As Long
   Debug.Assert m_init
   CheckOpen
-
-  Dim B() As Byte
+  
   If m_inputBuffer.EOS Then
+    Dim SizeBuffer(3) As Byte
+    m_trans.ReadAll SizeBuffer, 0, 4
+    
+    Dim Size As Long: Size = DecodeFrameSize(SizeBuffer)
+    If Size < 0 Then
+      Err.Raise 5, Description:="Read a negative frame size"
+    ElseIf Size > m_maxLength Then
+      Err.Raise 5, Description:="Frame size larger than max length"
+    End If
+    
+    Dim FrameBuffer() As Byte: ReDim FrameBuffer(Size - 1)
+    m_trans.ReadAll FrameBuffer, 0, Size
+
     m_inputBuffer.Close
     Set m_inputBuffer = New ADODB.Stream
     With m_inputBuffer
       .Mode = adModeReadWrite
       .Type = adTypeBinary
       .Open
-    End With
-
-    ReDim B(m_bufferSize - 1)
-    Dim Filled As Long: Filled = m_trans.Read(B, 0, m_bufferSize)
-    ReDim Preserve B(Filled - 1)
-
-    With m_inputBuffer
-      .Write B
+      .Write FrameBuffer
       .Position = 0
     End With
   End If
-
-  B = m_inputBuffer.Read(Length)
+  
+  Dim B() As Byte: B = m_inputBuffer.Read(Length)
   CopyMemory VarPtr(Buffer(Offset)), VarPtr(B(0)), UBound(B) + 1
   Read = UBound(B) + 1
 End Function
@@ -128,52 +133,25 @@ Public Sub TWrite(ByRef Buffer() As Byte, ByVal Offset As Long, ByVal Length As 
   Debug.Assert m_init
   CheckOpen
   
-  Dim B() As Byte
-  If m_bufferSize - m_outputBuffer.Position >= Length Then
-    ReDim B(Length - 1)
-    CopyMemory VarPtr(B(0)), VarPtr(Buffer(Offset)), Length
-    m_outputBuffer.Write B
-  Else
-    Dim Wrote As Long: Wrote = 0
-    If m_outputBuffer.Size > 0 And m_outputBuffer.Position < m_bufferSize Then
-      ReDim B(m_bufferSize - m_outputBuffer.Size - 1)
-      CopyMemory VarPtr(B(0)), VarPtr(Buffer(Offset)), UBound(B) + 1
-      m_outputBuffer.Write B
-
-      m_outputBuffer.Position = 0
-      B = m_outputBuffer.Read(m_outputBuffer.Size)
-      m_trans.TWrite B, 0, UBound(B) + 1
-      Wrote = Wrote + UBound(B) + 1
-
-      m_outputBuffer.Close
-      Set m_outputBuffer = New ADODB.Stream
-      With m_outputBuffer
-        .Mode = adModeReadWrite
-        .Type = adTypeBinary
-        .Open
-      End With
-    End If
-    While Length - Wrote >= m_bufferSize
-      m_trans.TWrite Buffer, Offset + Wrote, m_bufferSize
-      Wrote = Wrote + m_bufferSize
-    Wend
-    If Length - Wrote > 0 Then
-      ReDim B(Length - Wrote - 1)
-      CopyMemory VarPtr(B(0)), VarPtr(Buffer(Offset + Wrote)), Length - Wrote
-      m_outputBuffer.Write B
-    End If
-  End If
+  Dim B() As Byte: ReDim B(Length - 1)
+  CopyMemory VarPtr(B(0)), VarPtr(Buffer(Offset)), Length
+  m_outputBuffer.Write B
 End Sub
 
 Public Sub Flush()
   Debug.Assert m_init
   CheckOpen
-
+  
   If m_outputBuffer.Size > 0 Then
     m_outputBuffer.Position = 0
     Dim Buffer() As Byte: Buffer = m_outputBuffer.Read(m_outputBuffer.Size)
-    m_trans.TWrite Buffer, 0, UBound(Buffer) + 1
     
+    Dim SizeBuffer(3) As Byte
+    EncodeFrameSize UBound(Buffer) + 1, SizeBuffer
+    m_trans.TWrite SizeBuffer, 0, 4
+  
+    m_trans.TWrite Buffer, 0, UBound(Buffer) + 1
+
     m_outputBuffer.Close
     Set m_outputBuffer = New ADODB.Stream
     With m_outputBuffer
@@ -192,6 +170,26 @@ Private Sub CheckOpen()
     Err.Raise 5, Description:="Transport is not open"
   End If
 End Sub
+
+Private Sub EncodeFrameSize(ByVal Size As Long, ByRef Buffer() As Byte)
+  Debug.Assert UBound(Buffer) >= 3
+  Buffer(0) = CByte((Size \ &H1000000) And &HFF&)
+  Buffer(1) = CByte((Size \ &H10000) And &HFF&)
+  Buffer(2) = CByte((Size \ &H100&) And &HFF&)
+  Buffer(3) = CByte(Size And &HFF&)
+End Sub
+
+Private Function DecodeFrameSize(ByRef Buffer() As Byte) As Long
+  Debug.Assert UBound(Buffer) >= 3
+  DecodeFrameSize = _
+    CLng(Buffer(0) And &H7F) * &H1000000 + _
+    CLng(Buffer(1)) * &H10000 + _
+    CLng(Buffer(2)) * &H100& + _
+    CLng(Buffer(3))
+  If (Buffer(0) And &H80) = &H80 Then
+    DecodeFrameSize = DecodeFrameSize Or &H80
+  End If
+End Function
 
 
 ' Interface implementation
@@ -227,3 +225,4 @@ End Sub
 Private Sub TTransport_Flush()
   Flush
 End Sub
+

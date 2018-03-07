@@ -6,7 +6,7 @@ Private SeqId As Long
 
 Public Sub ThriftTest()
   Dim Trans As TTransport
-  Set Trans = NewTBufferedTransport(NewTSocket("127.0.0.1", 8888))
+  Set Trans = NewTFramedTransport(NewTSocket("127.0.0.1", 8888))
 
   Dim Proto As TProtocol
   Set Proto = NewTBinaryProtocol(Trans)
