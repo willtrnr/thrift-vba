@@ -98,11 +98,12 @@ End Property
 
 Public Property Get IsValidLong() As Boolean
   Debug.Assert m_init
-  IsValidLong = False
   If m_bytes(0) = 0 And m_bytes(1) = 0 And m_bytes(2) = 0 And m_bytes(3) = 0 And (m_bytes(4) And &H80) = 0 Then
     IsValidLong = True
   ElseIf m_bytes(0) = 255 And m_bytes(1) = 255 And m_bytes(2) = 255 And m_bytes(3) = 255 And (m_bytes(4) And &H80) = &H80 Then
     IsValidLong = True
+  Else
+    IsValidLong = False
   End If
 End Property
 
