@@ -1,4 +1,5 @@
 $ADODB_GUID = "{2A75196C-D9EB-4129-B803-931327F72D5C}"
+$MSXML_GUID = "{F5078F18-C551-11D3-89B9-0000F81FE221}"
 $SCRIPRUN_GUID = "{420B2830-E718-11CF-893D-00A0C9054228}"
 
 $BUILD_FILENAME = "a.xlsm"
@@ -21,6 +22,7 @@ $vbproj = $wb.VBProject
 $vbcomps = $vbproj.VBComponents
 
 $vbproj.References.AddFromGuid($ADODB_GUID, 2, 8) | Out-Null
+$vbproj.References.AddFromGuid($MSXML_GUID, 6, 0) | Out-Null
 $vbproj.References.AddFromGuid($SCRIPRUN_GUID, 1, 0) | Out-Null
 
 ForEach ($file in (Get-ChildItem -Path ([IO.Path]::Combine($LOCAL, "src")))) {
